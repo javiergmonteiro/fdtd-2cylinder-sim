@@ -12,7 +12,9 @@ from matplotlib import pyplot as plt
 from modules.generate_data import generate_models
 
 base_dir = os.getcwd()
+pid = os.getpid()
 
+print("process pid " + str(pid))
 
 class HiddenPrints:
     def __enter__(self):
@@ -27,7 +29,7 @@ class HiddenPrints:
 def test_func(thread_list, iterations):
     print("Comenzando simulación...")
     print("Estimando tiempo de espera...")
-    single = 54
+    single = 136
     total_estimated_time = single * iterations
     print("Tiempo estimado de: {} minutos".format(round(total_estimated_time / 60, 2)))
     start = time.time()
@@ -35,14 +37,14 @@ def test_func(thread_list, iterations):
         now = time.time()
         percentage = (int(now - start) * 100) / total_estimated_time
         if percentage < 100:
-            print("Porcentaje completado: {}          \r".format(round(percentage, 2)))
+            print("##########################   Porcentaje completado: {}   #############################".format(round(percentage, 2)))
         if "RUNNING" not in [t._state for t in thread_list] and percentage >= 50:
             finished = int(time.time() - start)
             print("Simulación terminada con {} segundos".format(finished))
             break
         else:
             if percentage >= 100:
-                print("Tiempo estimado completo, terminando ultimas simulaciones...")
+                print("#############################   Tiempo estimado completo, terminando ultimas simulaciones...  ###################################")
         time.sleep(5)
 
 
@@ -75,7 +77,7 @@ if __name__ == '__main__':
     # while not result_queue.empty():
     #     results.append(result_queue.get())
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         # Submit the function calls with different parameters
         futures = [executor.submit(generate_models, result_queue) for _ in range(simulations)]  # sim times
         control_thread = threading.Thread(target=test_func, args=(futures, simulations,))
@@ -85,7 +87,7 @@ if __name__ == '__main__':
     results = [future.result() for future in futures]
 
     print("Guardando resultados...")
-    file_directory = base_dir + '/output.csv'
+    file_directory = base_dir + '/output.csv_{}'.format(pid)
     csvfile = open(file_directory, 'w', newline='')
     fieldnames = ['radius', 'xc', 'yc', 'iradius', 'ixc', 'iyc', 'epsilon', 'sigma', 'iepsilon', 'isigma']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -94,12 +96,12 @@ if __name__ == '__main__':
     writer.writerows(cyl_params)
     csvfile.close()
     data_input = [d[0] for d in results]
-    np.save(base_dir + '/input.npy', np.array(data_input, dtype=object), allow_pickle=True)
+    np.save(base_dir + '/input.npy_{}'.format(pid), np.array(data_input, dtype=object), allow_pickle=True)
     print("input y output han sido guardados")
 
     if save_images.lower() == 's':
         print("Guardando imagenes..")
-        input_data = np.load(base_dir + '/input.npy', allow_pickle=True)
+        input_data = np.load(base_dir + '/input.npy_{}'.format(pid), allow_pickle=True)
         input_data = np.asarray(input_data).astype('float32')
         # print(results)
         for idx, idata in enumerate(input_data):
